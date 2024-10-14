@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Локація туриста</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet" />
+</head>
+
+<body>
+
+    <div id="osm-map"></div>
+
+    <div id="portConnectScreen">
+        <h1>Click to choose port</h1>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+
+    <script>
+
+        // Map layout settings
+
+        var element = document.getElementById('osm-map');
+        var map = L.map(element);
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Get data from port
+
+        document.getElementById("portConnectScreen").addEventListener("click", async () => {
+
+            // Port selection window pops up
+
+            const port = await navigator.serial.requestPort();
+
+            await port.open({ baudRate: 9600 });
+
+            document.getElementById("portConnectScreen").style = "top: 100%;";
+            console.log("Port connected");
+
+
+            // Recieving data from port
+
+            const reader = port.readable.getReader();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    // Allow the serial port to be closed later.
+                    reader.releaseLock();
+                    break;
+                }
+                // Value returns as Uint8Array.
+                // Decoding value
+                const decoder = new TextDecoder();
+                const newValue = decoder.decode(value);
+
+
+                let currentDate = new Date;
+
+                x = newValue.slice(0,9);
+                y = newValue.slice(10,20);
+
+                var target = L.latLng(x, y);
+                map.setView(target, 16);
+                L.marker(target).addTo(map);
+
+                let time = currentDate.getHours() + ":" + currentDate.getMinutes() + ":" + currentDate.getSeconds() + " " 
+                + currentDate.getUTCDay() + "." + currentDate.getUTCMonth() + "." + currentDate.getFullYear()
+                console.log(`${time} ${x};${y}`);
+            }
+        })
+
+    </script>
+
+</body>
+
+</html>
